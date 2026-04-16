@@ -13,7 +13,7 @@
 #include "camera.hpp"
 
 #include <iostream>
-float heightScale = 0.3f;
+
 bool wireframe = false;
 
 static void framebuffer_size_callback(GLFWwindow*, int w, int h)
@@ -41,7 +41,6 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glViewport(0, 0, 1280, 720);
 
-    Shader shader("./shaders/terrain.vert", "./shaders/terrain.frag");
     Terrain terrain(100);
     Camera camera;
 
@@ -57,19 +56,9 @@ int main()
         glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        shader.use();
-
-        glm::mat4 MVP =
-            camera.getProj(1280.0f / 720.0f) *
-            camera.getView() *
-            glm::mat4(1.0f);
-
-        shader.setMat4("MVP", glm::value_ptr(MVP));
-        shader.setFloat("heightScale", heightScale);
-
         glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 
-        terrain.draw();
+        terrain.draw(camera);
 
         // ImGui
         ImGui_ImplOpenGL3_NewFrame();
@@ -77,7 +66,7 @@ int main()
         ImGui::NewFrame();
 
         ImGui::Begin("Terrain");
-        ImGui::SliderFloat("Height", &heightScale, 0.0f, 1.0f);
+        ImGui::SliderFloat("Height", &terrain.m_heightScale, 0.0f, 1.0f);
         ImGui::Checkbox("Wireframe", &wireframe);
         ImGui::End();
 
