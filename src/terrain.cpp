@@ -2,8 +2,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "perlin_noise.hpp"
+#include <iostream>
 
 #include "camera.hpp"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 struct Vertex {
     float x, y, z;     // position
@@ -37,12 +41,17 @@ static float GetHeight(PerlinNoise<float>& noise, float x, float z)
 Terrain::Terrain(int size) : m_shader("./shaders/terrain.vert", "./shaders/terrain.frag")
 {
     m_size = size;
-    m_heightScale = 0.3f;
+    m_heightScale = 0.4f;
+
+    m_texSand = LoadTexture("./assets/sand.jpg");
+    m_texGrass = LoadTexture("./assets/grass.jpg");
+    m_texSoil = LoadTexture("./assets/soil.jpg");
+    m_texSnow = LoadTexture("./assets/snow.jpg");
 
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
-    PerlinNoise<float> noise(1337);
+    PerlinNoise<float> noise(5669);
 
     for (int z = 0; z <= m_size; z++) {
         for (int x = 0; x <= m_size; x++) {
@@ -56,7 +65,7 @@ Terrain::Terrain(int size) : m_shader("./shaders/terrain.vert", "./shaders/terra
             Vertex v;
 
             v.x = xf * 2.0f - 1.0f;
-            v.y = height * m_heightScale;
+            v.y = ((height + 1.0f) * 0.5f) * m_heightScale;
             v.z = zf * 2.0f - 1.0f;
 
             v.u = xf;
@@ -149,11 +158,61 @@ Terrain::Terrain(int size) : m_shader("./shaders/terrain.vert", "./shaders/terra
     glBindVertexArray(0);
 }
 
+GLuint Terrain::LoadTexture(const std::string& path)
+{
+    int w, h, channels;
+    stbi_set_flip_vertically_on_load(true);
+
+    unsigned char* data = stbi_load(path.c_str(), &w, &h, &channels, 0);
+    if (!data)
+    {
+        std::cout << "Failed to load texture: " << path << std::endl;
+        return 0;
+    }
+
+    GLenum format = (channels == 4) ? GL_RGBA : GL_RGB;
+
+    GLuint tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0, format, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    stbi_image_free(data);
+
+    return tex;
+}
+
 void Terrain::draw(Camera camera)
 {
     m_shader.use();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_texSand);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_texGrass);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, m_texSoil);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, m_texSnow);
+
+    m_shader.setInt("texSand", 0);
+    m_shader.setInt("texGrass", 1);
+    m_shader.setInt("texSoil", 2);
+    m_shader.setInt("texSnow", 3);
+
     glm::mat4 MVP =
-        camera.getProj(1280.0f / 720.0f) *
+        camera.getProj(1920.0f / 1080.0f) *
         camera.getView() *
         glm::mat4(1.0f);
 

@@ -14,6 +14,7 @@ public:
 
     void setFloat(const std::string& name, float v);
     void setMat4(const std::string& name, const float* mat);
+    void setInt(const std::string& name, int value);
 
     GLuint getID() const { return ID; }
 

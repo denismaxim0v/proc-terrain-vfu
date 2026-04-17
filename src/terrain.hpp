@@ -17,6 +17,11 @@ public:
 private:
     GLuint m_VBO, m_EBO;
     int m_size;
+    GLuint m_texGrass;
+    GLuint m_texSoil;
+    GLuint m_texSnow;
+    GLuint m_texSand;
 
     void generate();
+    GLuint LoadTexture(const std::string& path);
 };

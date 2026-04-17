@@ -37,5 +37,7 @@ target_link_libraries(ProceduralTerrainGeneration
 )
 
 file(COPY shaders DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
+
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ProceduralTerrainGeneration)

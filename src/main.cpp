@@ -27,7 +27,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Terrain", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1920, 1080, "Terrain", nullptr, nullptr);
     glfwMakeContextCurrent(window);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -39,9 +39,9 @@ int main()
     }
 
     glEnable(GL_DEPTH_TEST);
-    glViewport(0, 0, 1280, 720);
+    glViewport(0, 0, 1920, 1080);
 
-    Terrain terrain(100);
+    Terrain terrain(1000);
     Camera camera;
 
     // ImGui
