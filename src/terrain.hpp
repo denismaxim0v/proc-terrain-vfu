@@ -6,21 +6,38 @@
 
 class Terrain {
 public:
-    Terrain(int size);
+    Terrain(int size,
+        float tileScale = 1.0f,
+        float heightScale = 4.0f,
+        int seed=1337,
+        float baseFrequency = 220.0f,
+        float gain = 0.5,
+        float lacunarity = 2.0f);
+
     void draw(Camera camera);
 
-    GLuint m_VAO;
-    int m_indexCount;
-    Shader m_shader;
+    float getWorldSize() const { return (float)(m_size - 1) * m_tileScale; }
+    float getHeightScale() const { return m_heightScale; }
+
     float m_heightScale;
 
 private:
-    GLuint m_VBO, m_EBO;
     int m_size;
+    float m_tileScale;
+    int m_seed;
+    float m_baseFrequency;
+    float m_gain;
+    float m_lacunarity;
+    int m_indexCount;
+
+    GLuint m_VBO, m_EBO, m_VAO;
+    Shader m_shader;
+
     GLuint m_texGrass;
     GLuint m_texSoil;
     GLuint m_texSnow;
     GLuint m_texSand;
+
 
     void generate();
     GLuint LoadTexture(const std::string& path);

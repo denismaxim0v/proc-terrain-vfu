@@ -13,35 +13,51 @@ struct Vertex {
     float x, y, z;     // position
     float nx, ny, nz;  // normal
     float u, v;        // UV
+    float h;           // normalized height
 };
 
-static float GetHeight(PerlinNoise<float>& noise, float x, float z)
+static float GetHeight(
+    PerlinNoise<float>& noise,
+    float x,
+    float z,
+    float scale = 220.0f,
+    float offset = 0.0f,
+    float octaves = 6,
+    float gain = 0.5f,
+    float lacunarity = 2.0f
+)
 {
-    float total = 0.0f;
+    float sum = 0.0f;
+    float max = 0.0f;
     float frequency = 1.0f;
     float amplitude = 1.0f;
 
-    int octaves = 4;
-    float persistence = 0.5f;
-
     for (int i = 0; i < octaves; i++) {
-        total += noise.Noise(
-            x * frequency,
+        float noiseVal = noise.Noise(
+            (x + offset) / scale * frequency,
             0.0f,
-            z * frequency
-        ) * amplitude;
-
-        frequency *= 2.0f;
-        amplitude *= persistence;
+            (z + offset) / scale * frequency
+        );
+        sum += noiseVal * amplitude;
+        max += amplitude;
+        amplitude *= gain;
+        frequency *= lacunarity;
     }
 
-    return total;
+    return (sum / max + 1.0f) / 2.0f;
 }
 
-Terrain::Terrain(int size) : m_shader("./shaders/terrain.vert", "./shaders/terrain.frag")
+Terrain::Terrain(int size, float tileScale, float heightScale,
+                 int seed, float baseFrequency, float gain, float lacunarity) 
+    : m_shader("./shaders/terrain.vert", "./shaders/terrain.frag")
 {
     m_size = size;
-    m_heightScale = 0.4f;
+    m_tileScale = tileScale;
+    m_heightScale = heightScale;
+    m_seed = seed;
+    m_baseFrequency = baseFrequency;
+    m_gain = gain;
+    m_lacunarity = lacunarity;
 
     m_texSand = LoadTexture("./assets/sand.jpg");
     m_texGrass = LoadTexture("./assets/grass.jpg");
@@ -51,7 +67,9 @@ Terrain::Terrain(int size) : m_shader("./shaders/terrain.vert", "./shaders/terra
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
-    PerlinNoise<float> noise(5669);
+    PerlinNoise<float> noise(m_seed);
+
+    float worldSize = getWorldSize();
 
     for (int z = 0; z <= m_size; z++) {
         for (int x = 0; x <= m_size; x++) {
@@ -59,21 +77,28 @@ Terrain::Terrain(int size) : m_shader("./shaders/terrain.vert", "./shaders/terra
             float xf = (float)x / m_size;
             float zf = (float)z / m_size;
 
-            float baseFrequency = 3.0f;
-            float height = GetHeight(noise, xf * baseFrequency, zf * baseFrequency);
+            float normalizedHeight = GetHeight(
+                noise,
+                (float)x, (float)z,
+                m_baseFrequency,
+                0.0f,
+                6,
+                m_gain,
+                m_lacunarity
+            );
 
             Vertex v;
 
-            v.x = xf * 2.0f - 1.0f;
-            v.y = ((height + 1.0f) * 0.5f) * m_heightScale;
-            v.z = zf * 2.0f - 1.0f;
+            v.x = xf * worldSize - worldSize * 0.5f;
+            v.z = zf * worldSize - worldSize * 0.5f;
+            v.y = normalizedHeight * m_heightScale - m_heightScale * 0.5f;
 
             v.u = xf;
             v.v = zf;
 
-            v.nx = 0.0f;
-            v.ny = 1.0f;
-            v.nz = 0.0f;
+            v.h = normalizedHeight;
+
+            v.nx = v.ny = v.nz = 0.0f;
 
             vertices.push_back(v);
         }
@@ -155,6 +180,10 @@ Terrain::Terrain(int size) : m_shader("./shaders/terrain.vert", "./shaders/terra
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+        (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+
     glBindVertexArray(0);
 }
 
@@ -218,6 +247,7 @@ void Terrain::draw(Camera camera)
 
     m_shader.setMat4("MVP", glm::value_ptr(MVP));
     m_shader.setFloat("heightScale", m_heightScale);
+    m_shader.setFloat("texTiling", getWorldSize() * 1.5f);
 
     glBindVertexArray(m_VAO);
     glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, 0);

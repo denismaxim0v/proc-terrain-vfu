@@ -41,8 +41,19 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glViewport(0, 0, 1920, 1080);
 
-    Terrain terrain(1000);
-    Camera camera;
+    int   terrainSize = 256;
+    float terrainTileScale = 0.05f;
+    float terrainHeight = 4.0f;
+    int   terrainSeed = 1337;
+    float terrainFrequency = 220.0f;
+    float terrainGain = 0.5f;
+    float terrainLacunarity = 2.0f;
+    bool  wireframe = false;
+
+    Terrain terrain(terrainSize, terrainTileScale, terrainHeight,
+        terrainSeed, terrainFrequency, terrainGain, terrainLacunarity);
+
+    Camera camera(terrain.getWorldSize(), terrain.getHeightScale());
 
     // ImGui
     ImGui::CreateContext();
@@ -60,14 +71,46 @@ int main()
 
         terrain.draw(camera);
 
-        // ImGui
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
         ImGui::Begin("Terrain");
-        ImGui::SliderFloat("Height", &terrain.m_heightScale, 0.0f, 1.0f);
+
+        bool rebuild = false;
+
+        ImGui::SliderInt("Size", &terrainSize, 256, 2048);
+        rebuild |= ImGui::IsItemDeactivatedAfterEdit();
+
+        ImGui::SliderFloat("Tile scale", &terrainTileScale, 0.001f, 1.0f);
+        rebuild |= ImGui::IsItemDeactivatedAfterEdit();
+
+        ImGui::SliderFloat("Height scale", &terrainHeight, 0.1f, 20.0f);
+        rebuild |= ImGui::IsItemDeactivatedAfterEdit();
+
+        ImGui::SliderInt("Seed", &terrainSeed, 0, 9999999);
+        rebuild |= ImGui::IsItemDeactivatedAfterEdit();
+
+        ImGui::SliderFloat("Frequency", &terrainFrequency, 1.0f, 500.0f);
+        rebuild |= ImGui::IsItemDeactivatedAfterEdit();
+
+        ImGui::SliderFloat("Gain", &terrainGain, 0.1f, 0.9f);
+        rebuild |= ImGui::IsItemDeactivatedAfterEdit();
+
+        ImGui::SliderFloat("Lacunarity", &terrainLacunarity, 1.0f, 4.0f);
+        rebuild |= ImGui::IsItemDeactivatedAfterEdit();
+
         ImGui::Checkbox("Wireframe", &wireframe);
+
+        if (rebuild)
+        {
+            terrain = Terrain(terrainSize, terrainTileScale, terrainHeight,
+                terrainSeed, terrainFrequency, terrainGain,
+                terrainLacunarity);
+
+            camera = Camera(terrain.getWorldSize(), terrain.getHeightScale());
+        }
+
         ImGui::End();
 
         ImGui::Render();
