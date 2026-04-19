@@ -116,11 +116,11 @@ int main()
 
         if (rebuild)
         {
-            terrain = Terrain(terrainSize, terrainTileScale, terrainHeight,
+            terrain.update(terrainSize, terrainTileScale, terrainHeight,
                 terrainSeed, terrainFrequency, terrainGain,
                 terrainLacunarity);
 
-            camera = Camera(terrain.getWorldSize(), terrain.getHeightScale(), state.aspect);
+            camera.update(terrain.getWorldSize(), terrain.getHeightScale());
             camera.setAspect(state.aspect);
         }
 
@@ -131,6 +131,10 @@ int main()
 
         glfwSwapBuffers(window);
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     glfwTerminate();
 }

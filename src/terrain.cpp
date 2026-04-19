@@ -50,6 +50,30 @@ static float GetHeight(
 Terrain::Terrain(int size, float tileScale, float heightScale,
     int seed, float baseFrequency, float gain, float lacunarity)
     : m_shader("./shaders/terrain.vert", "./shaders/terrain.frag")
+    , m_size(size), m_tileScale(tileScale), m_heightScale(heightScale)
+    , m_seed(seed), m_baseFrequency(baseFrequency), m_gain(gain), m_lacunarity(lacunarity)
+{
+    m_texWater = LoadTexture("./assets/water.jpg");
+    m_texSand = LoadTexture("./assets/sand.jpg");
+    m_texGrass = LoadTexture("./assets/grass.jpg");
+    m_texSoil = LoadTexture("./assets/soil.jpg");
+    m_texSnow = LoadTexture("./assets/snow.jpg");
+
+    buildMesh();
+}
+
+Terrain::~Terrain()
+{
+    freeMesh();
+    glDeleteTextures(1, &m_texWater);
+    glDeleteTextures(1, &m_texSand);
+    glDeleteTextures(1, &m_texGrass);
+    glDeleteTextures(1, &m_texSoil);
+    glDeleteTextures(1, &m_texSnow);
+}
+
+void Terrain::update(int size, float tileScale, float heightScale,
+    int seed, float baseFrequency, float gain, float lacunarity)
 {
     m_size = size;
     m_tileScale = tileScale;
@@ -59,17 +83,26 @@ Terrain::Terrain(int size, float tileScale, float heightScale,
     m_gain = gain;
     m_lacunarity = lacunarity;
 
-    m_texSand = LoadTexture("./assets/sand.jpg");
-    m_texGrass = LoadTexture("./assets/grass.jpg");
-    m_texSoil = LoadTexture("./assets/soil.jpg");
-    m_texSnow = LoadTexture("./assets/snow.jpg");
+    freeMesh();
+    buildMesh();
+}
 
+void Terrain::freeMesh()
+{
+    glDeleteVertexArrays(1, &m_VAO);
+    glDeleteBuffers(1, &m_VBO);
+    glDeleteBuffers(1, &m_EBO);
+    m_VAO = m_VBO = m_EBO = 0;
+}
+
+void Terrain::buildMesh() {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
     PerlinNoise<float> noise(m_seed);
-
     float worldSize = getWorldSize();
+
+    Log(LogLevel::Info, m_tileScale, ":", worldSize);
 
     int vertCount = (m_size + 1) * (m_size + 1);
     std::vector<float> heights(vertCount);

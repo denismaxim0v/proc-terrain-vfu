@@ -17,6 +17,15 @@ Camera::Camera(float worldSize, float heightScale, float aspect)
     m_aspect = aspect;
 }
 
+void Camera::update(float worldSize, float heightScale) {
+    float zPos = worldSize * 1.2f;
+    float yPos = worldSize * 0.8f + heightScale * 0.5f;
+
+    m_position = glm::vec3(0.0f, yPos, zPos);
+    m_target = glm::vec3(0.0f, 0.0f, 0.0f);
+    m_far = worldSize * 10.0f;
+}
+
 void Camera::setAspect(float aspect) {
     m_aspect = aspect;
 };

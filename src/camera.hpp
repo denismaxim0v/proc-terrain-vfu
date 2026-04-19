@@ -6,6 +6,7 @@ public:
     Camera();
     Camera(float worldSize, float heightScale, float aspect);
 
+    void update(float worldSize, float heightScale);
     void setAspect(float aspect);
 
     glm::mat4 getView() const;
