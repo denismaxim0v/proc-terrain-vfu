@@ -21,7 +21,7 @@ target_include_directories(imgui PUBLIC
     vendor/glfw/include
 )
 
-add_executable(ProceduralTerrainGeneration  src/main.cpp src/terrain.cpp src/shader.cpp src/camera.cpp)
+add_executable(ProceduralTerrainGeneration  src/main.cpp src/terrain.cpp src/shader.cpp src/camera.cpp src/skybox.cpp)
 
 target_include_directories(ProceduralTerrainGeneration PUBLIC
     vendor/glfw/include

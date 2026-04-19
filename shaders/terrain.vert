@@ -15,6 +15,6 @@ void main()
 {
     vUV    = aUV;
     vNormal = aNormal;
-    vPos   = aPos;   // NEW: world position passed through
+    vPos   = aPos;
     gl_Position = MVP * vec4(aPos, 1.0);
 }

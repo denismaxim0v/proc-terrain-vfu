@@ -11,14 +11,17 @@
 #include "shader.hpp"
 #include "terrain.hpp"
 #include "camera.hpp"
+#include "skybox.hpp"
 
 #include <iostream>
-
-bool wireframe = false;
 
 struct AppState
 {
     float aspect = 1920.0f / 1080.0f;
+    Camera* camera = nullptr;
+    bool    dragging = false;
+    double  lastX = 0.0;
+    double  lastY = 0.0;
 };
 
 static AppState state;
@@ -26,10 +29,35 @@ static AppState state;
 static void framebuffer_size_callback(GLFWwindow*, int w, int h)
 {
     glViewport(0, 0, w, h);
-
     if (h == 0) return;
-
     state.aspect = (float)w / (float)h;
+}
+
+static void mouse_button_callback(GLFWwindow* window, int button, int action, int)
+{
+    if (ImGui::GetIO().WantCaptureMouse) return;
+    if (button == GLFW_MOUSE_BUTTON_LEFT)
+    {
+        state.dragging = (action == GLFW_PRESS);
+        if (state.dragging)
+            glfwGetCursorPos(window, &state.lastX, &state.lastY);
+    }
+}
+
+static void cursor_pos_callback(GLFWwindow*, double x, double y)
+{
+    if (!state.dragging || !state.camera) return;
+    float dx = (float)(x - state.lastX);
+    float dy = (float)(y - state.lastY);
+    state.lastX = x;
+    state.lastY = y;
+    state.camera->orbit(dx * 0.005f, -dy * 0.005f);
+}
+
+static void scroll_callback(GLFWwindow*, double, double yoffset)
+{
+    if (ImGui::GetIO().WantCaptureMouse || !state.camera) return;
+    state.camera->zoom((float)yoffset * -0.08f);
 }
 
 int main()
@@ -40,8 +68,12 @@ int main()
 
     GLFWwindow* window = glfwCreateWindow(1920, 1080, "Terrain", nullptr, nullptr);
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetCursorPosCallback(window, cursor_pos_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -64,7 +96,10 @@ int main()
     Terrain terrain(terrainSize, terrainTileScale, terrainHeight,
         terrainSeed, terrainFrequency, terrainGain, terrainLacunarity);
 
+    Skybox skybox("assets");
+
     Camera camera(terrain.getWorldSize(), terrain.getHeightScale(), state.aspect);
+    state.camera = &camera;
     camera.setAspect(state.aspect);
 
     // ImGui
@@ -82,6 +117,7 @@ int main()
         glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 
         terrain.draw(camera);
+        skybox.draw(camera);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
