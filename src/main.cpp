@@ -16,9 +16,20 @@
 
 bool wireframe = false;
 
+struct AppState
+{
+    float aspect = 1920.0f / 1080.0f;
+};
+
+static AppState state;
+
 static void framebuffer_size_callback(GLFWwindow*, int w, int h)
 {
     glViewport(0, 0, w, h);
+
+    if (h == 0) return;
+
+    state.aspect = (float)w / (float)h;
 }
 
 int main()
@@ -41,9 +52,9 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glViewport(0, 0, 1920, 1080);
 
-    int   terrainSize = 256;
-    float terrainTileScale = 0.05f;
-    float terrainHeight = 4.0f;
+    int   terrainSize = 1024;
+    float terrainTileScale = 0.03f;
+    float terrainHeight = 4.5f;
     int   terrainSeed = 1337;
     float terrainFrequency = 220.0f;
     float terrainGain = 0.5f;
@@ -53,7 +64,8 @@ int main()
     Terrain terrain(terrainSize, terrainTileScale, terrainHeight,
         terrainSeed, terrainFrequency, terrainGain, terrainLacunarity);
 
-    Camera camera(terrain.getWorldSize(), terrain.getHeightScale());
+    Camera camera(terrain.getWorldSize(), terrain.getHeightScale(), state.aspect);
+    camera.setAspect(state.aspect);
 
     // ImGui
     ImGui::CreateContext();
@@ -104,11 +116,12 @@ int main()
 
         if (rebuild)
         {
-            terrain = Terrain(terrainSize, terrainTileScale, terrainHeight,
+            terrain.update(terrainSize, terrainTileScale, terrainHeight,
                 terrainSeed, terrainFrequency, terrainGain,
                 terrainLacunarity);
 
-            camera = Camera(terrain.getWorldSize(), terrain.getHeightScale());
+            camera.update(terrain.getWorldSize(), terrain.getHeightScale());
+            camera.setAspect(state.aspect);
         }
 
         ImGui::End();
@@ -118,6 +131,10 @@ int main()
 
         glfwSwapBuffers(window);
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     glfwTerminate();
 }

@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "camera.hpp"
+#include "logger.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -13,7 +14,6 @@ struct Vertex {
     float x, y, z;     // position
     float nx, ny, nz;  // normal
     float u, v;        // UV
-    float h;           // normalized height
 };
 
 static float GetHeight(
@@ -48,8 +48,32 @@ static float GetHeight(
 }
 
 Terrain::Terrain(int size, float tileScale, float heightScale,
-                 int seed, float baseFrequency, float gain, float lacunarity) 
+    int seed, float baseFrequency, float gain, float lacunarity)
     : m_shader("./shaders/terrain.vert", "./shaders/terrain.frag")
+    , m_size(size), m_tileScale(tileScale), m_heightScale(heightScale)
+    , m_seed(seed), m_baseFrequency(baseFrequency), m_gain(gain), m_lacunarity(lacunarity)
+{
+    m_texWater = LoadTexture("./assets/water.jpg");
+    m_texSand = LoadTexture("./assets/sand.jpg");
+    m_texGrass = LoadTexture("./assets/grass.jpg");
+    m_texSoil = LoadTexture("./assets/soil.jpg");
+    m_texSnow = LoadTexture("./assets/snow.jpg");
+
+    buildMesh();
+}
+
+Terrain::~Terrain()
+{
+    freeMesh();
+    glDeleteTextures(1, &m_texWater);
+    glDeleteTextures(1, &m_texSand);
+    glDeleteTextures(1, &m_texGrass);
+    glDeleteTextures(1, &m_texSoil);
+    glDeleteTextures(1, &m_texSnow);
+}
+
+void Terrain::update(int size, float tileScale, float heightScale,
+    int seed, float baseFrequency, float gain, float lacunarity)
 {
     m_size = size;
     m_tileScale = tileScale;
@@ -59,50 +83,81 @@ Terrain::Terrain(int size, float tileScale, float heightScale,
     m_gain = gain;
     m_lacunarity = lacunarity;
 
-    m_texSand = LoadTexture("./assets/sand.jpg");
-    m_texGrass = LoadTexture("./assets/grass.jpg");
-    m_texSoil = LoadTexture("./assets/soil.jpg");
-    m_texSnow = LoadTexture("./assets/snow.jpg");
+    freeMesh();
+    buildMesh();
+}
 
+void Terrain::freeMesh()
+{
+    glDeleteVertexArrays(1, &m_VAO);
+    glDeleteBuffers(1, &m_VBO);
+    glDeleteBuffers(1, &m_EBO);
+    m_VAO = m_VBO = m_EBO = 0;
+}
+
+void Terrain::buildMesh() {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
     PerlinNoise<float> noise(m_seed);
-
     float worldSize = getWorldSize();
+
+    Log(LogLevel::Info, m_tileScale, ":", worldSize);
+
+    int vertCount = (m_size + 1) * (m_size + 1);
+    std::vector<float> heights(vertCount);
+    float minH = FLT_MAX;
+    float maxH = -FLT_MAX;
 
     for (int z = 0; z <= m_size; z++) {
         for (int x = 0; x <= m_size; x++) {
+            float h = GetHeight(noise, (float)x, (float)z,
+                m_baseFrequency, 0.0f, 6, m_gain, m_lacunarity);
+            heights[z * (m_size + 1) + x] = h;
+            minH = std::min(minH, h);
+            maxH = std::max(maxH, h);
+        }
+    }
 
+    m_minHeight = minH * m_heightScale - m_heightScale * 0.5f;
+    m_maxHeight = maxH * m_heightScale - m_heightScale * 0.5f;
+
+    for (int z = 0; z <= m_size; z++) {
+        for (int x = 0; x <= m_size; x++) {
             float xf = (float)x / m_size;
             float zf = (float)z / m_size;
 
-            float normalizedHeight = GetHeight(
-                noise,
-                (float)x, (float)z,
-                m_baseFrequency,
-                0.0f,
-                6,
-                m_gain,
-                m_lacunarity
-            );
+            float normalizedHeight = heights[z * (m_size + 1) + x];
+
+            float fx = glm::abs(xf * 2.0f - 1.0f);
+            float fz = glm::abs(zf * 2.0f - 1.0f);
+            float falloff = glm::smoothstep(m_falloffEdge0, m_falloffEdge1,
+                glm::max(fx, fz));
+
+            float finalHeight = glm::clamp(normalizedHeight - falloff, 0.0f, 1.0f);
 
             Vertex v;
-
             v.x = xf * worldSize - worldSize * 0.5f;
             v.z = zf * worldSize - worldSize * 0.5f;
-            v.y = normalizedHeight * m_heightScale - m_heightScale * 0.5f;
-
+            v.y = finalHeight * m_heightScale - m_heightScale * 0.5f;
             v.u = xf;
             v.v = zf;
-
-            v.h = normalizedHeight;
-
             v.nx = v.ny = v.nz = 0.0f;
 
             vertices.push_back(v);
         }
     }
+
+    float minFinal = FLT_MAX;
+    float maxFinal = -FLT_MAX;
+    for (auto& v : vertices) {
+        minFinal = std::min(minFinal, v.y);
+        maxFinal = std::max(maxFinal, v.y);
+    }
+    m_minHeight = minFinal;
+    m_maxHeight = maxFinal;
+
+    Log(LogLevel::Info, m_minHeight, ":", m_maxHeight);
 
     for (int z = 0; z < m_size; z++) {
         for (int x = 0; x < m_size; x++) {
@@ -180,10 +235,6 @@ Terrain::Terrain(int size, float tileScale, float heightScale,
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-        (void*)(8 * sizeof(float)));
-    glEnableVertexAttribArray(3);
-
     glBindVertexArray(0);
 }
 
@@ -219,35 +270,40 @@ GLuint Terrain::LoadTexture(const std::string& path)
     return tex;
 }
 
-void Terrain::draw(Camera camera)
+void Terrain::draw(const Camera& camera)
 {
     m_shader.use();
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_texSand);
+    glBindTexture(GL_TEXTURE_2D, m_texWater);
 
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, m_texGrass);
+    glBindTexture(GL_TEXTURE_2D, m_texSand);
 
     glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, m_texSoil);
+    glBindTexture(GL_TEXTURE_2D, m_texGrass);
 
     glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, m_texSoil);
+
+    glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D, m_texSnow);
 
-    m_shader.setInt("texSand", 0);
-    m_shader.setInt("texGrass", 1);
-    m_shader.setInt("texSoil", 2);
-    m_shader.setInt("texSnow", 3);
+    m_shader.setInt("texWater", 0);
+    m_shader.setInt("texSand", 1);
+    m_shader.setInt("texGrass", 2);
+    m_shader.setInt("texSoil", 3);
+    m_shader.setInt("texSnow", 4);
 
     glm::mat4 MVP =
-        camera.getProj(1920.0f / 1080.0f) *
+        camera.getProj() *
         camera.getView() *
         glm::mat4(1.0f);
 
     m_shader.setMat4("MVP", glm::value_ptr(MVP));
-    m_shader.setFloat("heightScale", m_heightScale);
     m_shader.setFloat("texTiling", getWorldSize() * 1.5f);
+    m_shader.setFloat("minHeight", m_minHeight);
+    m_shader.setFloat("maxHeight", m_maxHeight);
 
     glBindVertexArray(m_VAO);
     glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, 0);

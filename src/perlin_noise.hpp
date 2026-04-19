@@ -11,7 +11,7 @@
  *  Ken Perlin. JAVA REFERENCE IMPLEMENTATION OF IMPROVED NOISE. 2004.
  *  [online]. https://mrl.cs.nyu.edu/~perlin/noise/.
  */
-    template <typename T>
+template <typename T>
 class PerlinNoise
 {
 public:
@@ -39,13 +39,13 @@ public:
     T Noise(T x, T y, T z) const
     {
         int32_t X = (int32_t)glm::floor(x) & 255;
-        int32_t Y = (int32_t)glm::floor(y) & 255;   
+        int32_t Y = (int32_t)glm::floor(y) & 255;
         int32_t Z = (int32_t)glm::floor(z) & 255;
-        x -= glm::floor(x);                         
-        y -= glm::floor(y);                        
+        x -= glm::floor(x);
+        y -= glm::floor(y);
         z -= glm::floor(z);
-        T u = Fade(x);                              
-        T v = Fade(y);                             
+        T u = Fade(x);
+        T v = Fade(y);
         T w = Fade(z);
         uint32_t A = m_P[X] + Y, AA = m_P[A] + Z, AB = m_P[A + 1] + Z;
         uint32_t B = m_P[X + 1] + Y, BA = m_P[B] + Z, BB = m_P[B + 1] + Z;

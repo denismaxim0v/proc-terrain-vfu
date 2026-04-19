@@ -1,6 +1,5 @@
 #pragma once
 #include <iostream>
-#include <string>
 
 enum class LogLevel
 {
@@ -9,20 +8,23 @@ enum class LogLevel
     Error
 };
 
-inline void Log(LogLevel level, const std::string& msg)
+template<typename... Args>
+inline void Log(LogLevel level, Args&&... args)
 {
+    std::ostream& out = (level == LogLevel::Error) ? std::cerr : std::cout;
+
     switch (level)
     {
     case LogLevel::Info:
-        std::cout << "[INFO] " << msg << "\n";
+        out << "[INFO] ";
         break;
-
     case LogLevel::Warning:
-        std::cout << "[WARN] " << msg << "\n";
+        out << "[WARN] ";
         break;
-
     case LogLevel::Error:
-        std::cerr << "[ERROR] " << msg << "\n";
+        out << "[ERROR] ";
         break;
     }
+
+    (out << ... << args) << "\n"; // fold expression (C++17)
 }
