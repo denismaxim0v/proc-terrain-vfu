@@ -62,10 +62,18 @@ vec3 blendTerrain(float h, vec2 uv)
 
 vec3 applyLighting(vec3 color, vec3 normal)
 {
-    vec3  lightDir = normalize(vec3(0.4, 1.0, 0.3));
-    float diffuse  = max(dot(normalize(normal), lightDir), 0.0);
-    float ambient  = 0.25;
-    return color * (ambient + diffuse * 0.75);
+    vec3 n = normalize(normal);
+
+    vec3  sunDir   = normalize(vec3(1.0, 0.15, 0.3));
+    vec3  sunColor = vec3(1.0, 0.55, 0.22);
+    float diffuse  = max(dot(n, sunDir), 0.0);
+
+    vec3  skyColor    = vec3(0.22, 0.32, 0.58);
+    vec3 groundColor = vec3(0.4, 0.3, 0.25);
+    float skyBlend = clamp(n.y * 0.5 + 0.5, 0.6, 1.0);
+    vec3  ambient     = mix(groundColor, skyColor, skyBlend) * 0.6 + vec3(0.25);
+
+    return color * (ambient + sunColor * diffuse * 0.95);
 }
 
 void main()
