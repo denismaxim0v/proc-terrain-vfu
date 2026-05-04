@@ -24,14 +24,14 @@ float inverseLerp(float a, float b, float x)
 vec3 blendTerrain(float h, vec2 uv)
 {
     vec3 waterTex     = texture(texWater, uv * texTiling).rgb;
-    vec3 waterDeepCol    = mix(waterTex, vec3(0.00, 0.00, 0.388), 0.8);
+    vec3 waterDeepCol    = mix(waterTex, vec3(0.05, 0.15, 0.55), 0.75);
     vec3 waterShallowCol = mix(waterTex, vec3(0.21, 0.40, 0.78), 0.8);
 
     float waterDeepW    = 1.0 - smoothstep(0.0,  0.10, h);
     float waterShallowW = smoothstep(0.00, 0.10, h)
-                        * (1.0 - smoothstep(0.10, 0.15, h));
-    float sandW         = smoothstep(0.10, 0.15, h)
-                        * (1.0 - smoothstep(0.15, 0.20, h));
+                        * (1.0 - smoothstep(0.10, 0.30, h));
+    float sandW         = smoothstep(0.10, 0.30, h)
+                        * (1.0 - smoothstep(0.22, 0.32, h));
     float grassW        = smoothstep(0.15, 0.20, h)
                         * (1.0 - smoothstep(0.55, 0.75, h));
     float soilW         = smoothstep(0.40, 0.55, h)

@@ -82,6 +82,8 @@ int main()
     }
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
     glViewport(0, 0, 1920, 1080);
 
     int   terrainSize = 1024;

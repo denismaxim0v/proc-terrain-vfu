@@ -148,17 +148,6 @@ void Terrain::buildMesh() {
         }
     }
 
-    float minFinal = FLT_MAX;
-    float maxFinal = -FLT_MAX;
-    for (auto& v : vertices) {
-        minFinal = std::min(minFinal, v.y);
-        maxFinal = std::max(maxFinal, v.y);
-    }
-    m_minHeight = minFinal;
-    m_maxHeight = maxFinal;
-
-    Log(LogLevel::Info, m_minHeight, ":", m_maxHeight);
-
     for (int z = 0; z < m_size; z++) {
         for (int x = 0; x < m_size; x++) {
 
