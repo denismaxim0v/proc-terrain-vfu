@@ -66,7 +66,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
-    GLFWwindow* window = glfwCreateWindow(1920, 1080, "Terrain", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "Terrain", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
@@ -84,7 +84,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
-    glViewport(0, 0, 1920, 1080);
+    glViewport(0, 0, 1280, 720);
 
     int   terrainSize = 1024;
     float terrainTileScale = 0.03f;
@@ -129,16 +129,16 @@ int main()
 
         bool rebuild = false;
 
-        ImGui::SliderInt("Size", &terrainSize, 256, 2048);
+        ImGui::SliderInt("Size", &terrainSize, 256, 4096);
         rebuild |= ImGui::IsItemDeactivatedAfterEdit();
 
         ImGui::SliderFloat("Tile scale", &terrainTileScale, 0.001f, 1.0f);
         rebuild |= ImGui::IsItemDeactivatedAfterEdit();
 
-        ImGui::SliderFloat("Height scale", &terrainHeight, 0.1f, 20.0f);
+        ImGui::SliderFloat("Height scale", &terrainHeight, 0.1f, 30.0f);
         rebuild |= ImGui::IsItemDeactivatedAfterEdit();
 
-        ImGui::SliderInt("Seed", &terrainSeed, 0, 9999999);
+        ImGui::SliderInt("Seed", &terrainSeed, 0, 99999999);
         rebuild |= ImGui::IsItemDeactivatedAfterEdit();
 
         ImGui::SliderFloat("Frequency", &terrainFrequency, 1.0f, 500.0f);
